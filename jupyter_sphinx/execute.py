@@ -327,7 +327,7 @@ class ExecuteJupyterCells(SphinxTransform):
         default_kernel = self.config.jupyter_execute_default_kernel
         default_names = default_notebook_names(docname)
         thebe_config = self.config.jupyter_sphinx_thebelab_config
-
+        stderr_classes = self.config.jupyter_sphinx_stderr_classes
         # Check if we have anything to execute.
         if not doctree.traverse(JupyterCellNode):
             return
@@ -417,7 +417,8 @@ class ExecuteJupyterCells(SphinxTransform):
                     self.config.jupyter_execute_data_priority,
                     bool(node.attributes["stderr"]),
                     sphinx_abs_dir(self.env),
-                    thebe_config
+                    thebe_config,
+                    stderr_classes
                 )
                 attach_outputs(output_nodes, node, thebe_config, cm_language)
 
@@ -472,7 +473,7 @@ def split_on(pred, it):
     return (list(x) for _, x in groupby(it, count))
 
 
-def cell_output_to_nodes(cell, data_priority, write_stderr, dir, thebe_config):
+def cell_output_to_nodes(cell, data_priority, write_stderr, dir, thebe_config, stderr_classes):
     """Convert a jupyter cell with outputs and filenames to doctree nodes.
 
     Parameters
@@ -496,11 +497,20 @@ def cell_output_to_nodes(cell, data_priority, write_stderr, dir, thebe_config):
         ):
             if not write_stderr and output["name"] == "stderr":
                 continue
-            to_add.append(docutils.nodes.literal_block(
-                text=output['text'],
-                rawsource=output['text'],
-                language='none',
-            ))
+            # If stderr, output as plain text (setting rawsource to None)
+            if output["name"] == "stderr":
+                to_add.append(docutils.nodes.literal_block(
+                    text=output['text'].strip(),  # removes linebreaks
+                    rawsource=None,  # displays in plain cell
+                    language='none',
+                    classes=stderr_classes
+                ))
+            else:
+                to_add.append(docutils.nodes.literal_block(
+                    text=output['text'],
+                    rawsource=output['text'],
+                    language='none',
+                ))
         elif (
             output_type == 'error'
         ):
@@ -767,7 +777,8 @@ def setup(app):
         ],
         'env',
     )
-
+    # stderr html classes config; gets attached to pre.
+    app.add_config_value('jupyter_sphinx_stderr_classes', ['stderr'], 'html')
     # ipywidgets config
     app.add_config_value('jupyter_sphinx_require_url', REQUIRE_URL_DEFAULT, 'html')
     app.add_config_value('jupyter_sphinx_embed_url', None, 'html')
