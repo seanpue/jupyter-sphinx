@@ -156,7 +156,6 @@ class JupyterCell(Directive):
         'hide-output': directives.flag,
         'code-below': directives.flag,
         'linenos': directives.flag,
-        # 'continue-linenos': directives.flag,   #<--- remove this
         'raises': csv_option,
         'stderr': directives.flag,
     }
@@ -192,7 +191,6 @@ class JupyterCell(Directive):
             hide_output=('hide-output' in self.options),
             code_below=('code-below' in self.options),
             linenos=('linenos' in self.options),
-            # continue_linenos=('continue-linenos' in self.options),
             raises=self.options.get('raises'),
             stderr=('stderr' in self.options),
         )]
@@ -402,19 +400,14 @@ class ExecuteJupyterCells(SphinxTransform):
             # Add line numbers to code cells if jupyter_sphinx_linenos or
             # jupyter_sphinx_continue_linenos are set in the configuration,
             # or the linenos directive is set.
-            # Reset linenumber if linenos directive is set.
             # Update current line numbers from cell if jupyter_sphinx_continue_linenos
             # is set.
             linenostart = 1
             for node in nodes:
                 source = node.children[0]
-                if linenos_config or continue_linenos:
-                    source["linenos"] = True
-                if node["linenos"]:
-                    linenostart = 1
+                if linenos_config or continue_linenos or node["linenos"]:
                     source["linenos"] = True
                 if continue_linenos:
-                    source["linenos"] = True
                     source["highlight_args"] = {'linenostart': linenostart}
                     linenostart += source.rawsource.count("\n") + 1
 
