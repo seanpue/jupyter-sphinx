@@ -250,11 +250,6 @@ produces:
 
     print("hello, world!", file=sys.stderr)
 
-.. warning::
-
-    Note that output written to ``stderr`` is not displayed any differently than output written
-    to ``stdout``.
-
 Controlling the execution environment
 -------------------------------------
 The execution environment can be controlled by using the ``jupyter-kernel`` directive. This directive takes
