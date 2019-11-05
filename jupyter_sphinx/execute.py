@@ -55,10 +55,13 @@ def builder_inited(app):
     if embed_url:
         app.add_js_file(embed_url)
 
+    # add jupyter-sphinx css
+    app.add_css_file('jupyter-sphinx.css')
     # Check if a thebelab config was specified
     if app.config.jupyter_sphinx_thebelab_config:
         app.add_js_file('thebelab-helper.js')
         app.add_css_file('thebelab.css')
+
 
 ### Directives and their associated doctree nodes
 
@@ -604,6 +607,8 @@ def cell_output_to_nodes(cell, data_priority, write_stderr, dir, thebe_config):
 
 
 def attach_outputs(output_nodes, node, thebe_config, cm_language):
+    if not node.attributes["hide_code"]:  # only add css if code is displayed
+        node.attributes["classes"] = ["jupyter_container"]
     if thebe_config:
         source = node.children[0]
         thebe_source = ThebeSourceNode(hide_code=node.attributes['hide_code'],
@@ -612,7 +617,6 @@ def attach_outputs(output_nodes, node, thebe_config, cm_language):
         thebe_source.children = [source]
 
         node.children = [thebe_source]
-        node.attributes["classes"] = ["jupyter_container"] # add jupyter classes even if thebe_config <-- CHECK
 
         if not node.attributes['hide_output']:
             thebe_output = ThebeOutputNode()
@@ -622,12 +626,8 @@ def attach_outputs(output_nodes, node, thebe_config, cm_language):
             else:
                 node.children = node.children + [thebe_output]
     else:
-        # Only add container class if code is shown
         if node.attributes['hide_code']:
             node.children = []
-        else:
-            node.attributes["classes"] = ["jupyter_container"]
-
         if not node.attributes['hide_output']:
             if node.attributes['code_below']:
                 node.children = output_nodes + node.children
@@ -777,6 +777,11 @@ def build_finished(app, env):
     if app.builder.format != 'html':
         return
 
+    # Copy stylesheet
+    src = os.path.join(os.path.dirname(__file__), 'css')
+    dst = os.path.join(app.outdir, '_static')
+    copy_asset(src, dst)
+
     thebe_config = app.config.jupyter_sphinx_thebelab_config
     if not thebe_config:
         return
@@ -789,11 +794,6 @@ def build_finished(app, env):
 
 def setup(app):
     # Configuration
-    # Copy stylesheet
-    src = os.path.join(os.path.dirname(__file__), 'css')
-    dst = os.path.join(app.outdir, '_static')
-    copy_asset(src, dst)
-    app.add_css_file('jupyter-sphinx.css')
 
     app.add_config_value(
         'jupyter_execute_kwargs',
